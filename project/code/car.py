@@ -43,6 +43,10 @@ class CarPlant(object):
     def setFrame(self, frame):
         self.frame = frame
 
+    def getPositionFromFrame(self):
+        (x,y,_) = self.frame.transform.GetPosition()
+        (_,_,theta) = self.frame.transform.GetOrientation()
+
     def setStateFromFrame(self, frame):
          # get roll, pitch, yaw from the frame, set the state to that . . .
          pass

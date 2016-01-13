@@ -6,9 +6,10 @@ import ddapp.objectmodel as om
 
 class SensorObj(object):
 
-    def __init__(self, FOV=180.0, numRays=20, rayLength=8):
+    def __init__(self, FOV=180.0, numRays=20, rayLength=8, noiseFraction=0.001):
         self.numRays = numRays
         self.rayLength = rayLength
+        self.noiseFraction = noiseFraction
 
         FOVrad = FOV * np.pi/180.0
         self.angleMin = -FOVrad/2
@@ -55,3 +56,27 @@ class SensorObj(object):
         result = locator.IntersectWithLine(rayOrigin, rayEnd, tolerance, lineT, pt, pcoords, subId)
 
         return pt if result else None
+
+    def transformRaycastToLocalCoordinates(self, raycastDistance, discardMaxRange=True, addNoise=False):
+        rays2D = self.rays[0:2,:] # this is 2 x numRays
+
+
+        if discardMaxRange:
+            tol = 1e-3
+            idx = np.where(raycastDistance < (self.rayLength - tol))[0]
+
+        else:
+            idx = np.arange(self.numRays)
+
+        if addNoise:
+            raycastDistance = raycastDistance + self.noiseFraction*self.rayLength*(
+                np.random.random(self.numRays) - 0.5)
+
+        raycastLocal = np.multiply(self.rays[0:2,:], raycastDistance)
+        raycastLocal = raycastLocal[:,idx]
+
+        return raycastLocal, idx
+
+    def transformRaycastTest(self):
+        raycastDistance = self.raycastAllFromCurrentFrameLocation()
+        return self.transformRaycastToLocalCoordinates(raycastDistance)

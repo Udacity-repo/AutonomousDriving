@@ -16,6 +16,7 @@ class World(object):
 
     @staticmethod
     def buildSimpleWorld():
+        print "this is a test"
         d = DebugData()
         d.addLine((2,-1,0), (2,1,0), radius=0.1)
         d.addLine((2,-1,0), (1,-2,0), radius=0.1)
@@ -149,6 +150,56 @@ class World(object):
         return world
 
     @staticmethod
+    def buildHallwayWorld():
+        print "building hallway world"
+
+        lineRadius = 0.2
+        d = DebugData()
+
+        xMin = -10
+        xMax = 10
+        yMin = 0
+        yMax = 50
+
+        for x in [xMin, xMax]:
+            lineStart = (x, yMin, 0)
+            lineEnd = (x, yMax, 0)
+            d.addLine(lineStart, lineEnd, radius=lineRadius)
+
+        obj = vis.showPolyData(d.getPolyData(), 'world')
+
+        world = World()
+        world.visObj = obj
+        return world
+
+    @staticmethod
+    def buildDonutWorld():
+        print "building donut world"
+
+        lineRadius = 0.2
+        hallwayWidth = 10
+        numSegments = 6
+        circleRadius = 50
+        d = DebugData()
+
+        angleList = np.linspace(0,2*np.pi, numSegments + 1)
+        for i in range(numSegments):
+            theta = angleList[i]
+            theta_next = angleList[i+1]
+
+            for radius in [circleRadius, circleRadius+hallwayWidth]:
+                lineStart = [radius*np.cos(theta), radius*np.sin(theta), 0]
+                lineEnd = [radius*np.cos(theta_next), radius*np.sin(theta_next), 0]
+                d.addLine(lineStart, lineEnd, radius=lineRadius)
+
+
+        obj = vis.showPolyData(d.getPolyData(), 'world')
+        world = World()
+        world.visObj = obj
+        return world
+
+
+    @staticmethod
     def buildFixedTriangleWorld(percentObsDensity):
         print "building fixed triangle world"
 
@@ -209,6 +260,15 @@ class World(object):
 
         obj = vis.showPolyData(polyData, 'robot')
         robotFrame = vis.addChildFrame(obj)
+
+        # this makes sure we can only rotate it in two dimensions
+        robotFrame.setProperty('Scale', 3)
+        robotFrame.setProperty('Edit', True)
+        robotFrame.widget.HandleRotationEnabledOff()
+        rep = robotFrame.widget.GetRepresentation()
+        rep.SetTranslateAxisEnabled(2, False)
+        rep.SetRotateAxisEnabled(0, False)
+        rep.SetRotateAxisEnabled(1, False)
         return obj, robotFrame
 
     @staticmethod
@@ -219,3 +279,4 @@ class World(object):
         loc.SetDataSet(polyData)
         loc.BuildLocator()
         return loc
+
