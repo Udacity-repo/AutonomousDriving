@@ -14,12 +14,14 @@ class SensorObj(object):
         FOVrad = FOV * np.pi/180.0
         self.angleMin = -FOVrad/2
         self.angleMax = FOVrad/2
+        self.FOVDegrees = FOV
 
         self.angleGrid = np.linspace(self.angleMin, self.angleMax, self.numRays)
+        self.angleSpacing = (self.angleMax - self.angleMin)/self.numRays
 
         self.rays = np.zeros((3,self.numRays))
         self.rays[0,:] = np.cos(self.angleGrid)
-        self.rays[1,:] = -np.sin(self.angleGrid)
+        self.rays[1,:] = np.sin(self.angleGrid)
 
     def setLocator(self, locator):
         self.locator = locator
@@ -80,3 +82,4 @@ class SensorObj(object):
     def transformRaycastTest(self):
         raycastDistance = self.raycastAllFromCurrentFrameLocation()
         return self.transformRaycastToLocalCoordinates(raycastDistance)
+
