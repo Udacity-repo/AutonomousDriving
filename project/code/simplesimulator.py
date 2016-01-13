@@ -8,6 +8,11 @@ from world import World
 from controller import DubinsController
 from controller import DubinsPIDController
 from walldetector import WallDetector
+from purepursuitcontroller import SimplePlanner
+from purepursuitcontroller import PurePursuitController
+from purepursuitcontroller import FeatureDetector
+
+
 
 import ddapp.vtkAll as vtk
 import ddapp.visualization as vis
@@ -41,12 +46,16 @@ class SimpleSimulator(object):
     def setDefaultOptions(self):
         defaultOptions = dict()
         defaultOptions['Sensor'] = dict()
-        defaultOptions['Sensor']['rayLength'] = 30
-        defaultOptions['Sensor']['numRays'] = 50
+        defaultOptions['Sensor']['rayLength'] = 20
+        defaultOptions['Sensor']['numRays'] = 100
         defaultOptions['Sensor']['FOV'] = 270
 
         defaultOptions['Sim'] = dict()
         defaultOptions['Sim']['dt'] = 0.05
+        defaultOptions['Sim']['usePursuitController'] = True
+
+        defaultOptions['featureDetector'] = {}
+        defaultOptions['featureDetector']['detectCorners'] = True
         self.options = defaultOptions
 
         self.app = ConsoleApp()
@@ -68,6 +77,9 @@ class SimpleSimulator(object):
         self.car.setFrame(self.carFrame)
         self.locator = World.buildCellLocator(self.world.visObj.polyData)
         self.wallDetector = WallDetector(self.sensor)
+        self.planner = SimplePlanner(self.sensor)
+        self.pursuitController = PurePursuitController(self.car, self.sensor)
+        self.featureDetector = FeatureDetector(self.sensor)
 
     def updateDrawIntersection(self, frame):
 
@@ -99,13 +111,15 @@ class SimpleSimulator(object):
 
         verbose = True
         raycastData = self.sensor.raycastAllFromCurrentFrameLocation()
-        wallsFound = self.wallDetector.findWalls(raycastData, addNoise=False)
 
-        if verbose:
-            print "walls found", len(wallsFound)
+        if self.options['Sim']['usePursuitController']:
+            L_fw, theta = self.planner.computePursuitPoint(raycastData, plot=True)
+            carState = self.car.state
+            controlInput = self.pursuitController.computeControlInput(carState, dt, L_fw, theta)
 
-        controlInput = self.controller.computeControlInputFromWallData(self.car.state, wallsFound,
-                                                                       dt)
+        if self.options['featureDetector']['detectCorners']:
+            self.featureDetector.detectCorner(raycastData, plot=True, verbose=True)
+
         newState = self.car.simulateOneStep(controlInput, dt=dt)
         self.car.setFrameToState()
 
@@ -158,3 +172,14 @@ class SimpleSimulator(object):
 
         return self.controller.computeCrossTrackError(carState, wallsFound, verbose=True)
 
+    def testPursuitController(self):
+        L_fw, theta = self.planner.testFromCurrent()
+        self.car.resetStateToFrameLocation()
+        v_des = 5.0
+        carState = self.car.state
+        dt = 0.05
+        u = self.pursuitController.computeControlInput(carState, dt, L_fw, theta, v_des, verbose=True)
+
+    def testDetectFeature(self):
+        raycastData = self.sensor.raycastAllFromCurrentFrameLocation()
+        self.featureDetector.detectCorner(raycastData, plot=True, verbose=True)
